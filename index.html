@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>penalty-shootout</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #unity-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #loading-bar {
+            width: 100%;
+            text-align: center;
+            color: white;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        /* Splash screen styles */
+        #splash-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #splash-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Loading Screen styles */
+        #loading-video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 5;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #loading-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #loading-bar-wrapper {
+            position: absolute;
+            top: 90%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            text-align: center;
+            z-index: 10;
+            font-family: 'Orbitron', sans-serif;
+            flex-direction: column;
+        }
+
+        #loading-text {
+            color: white;
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            letter-spacing: 3px;
+            text-shadow: 2px 2px 4px #82ff00;
+            margin-left: 20px;
+        }
+
+        #loading-bar {
+            position: relative;
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            overflow: hidden;
+        }
+
+        #loading-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #78DF0D, #a4e034);
+            transition: width 0.3s ease;
+            clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+        }
+
+        #loading-glow {
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.8), transparent);
+            animation: shine 0.5s infinite linear;
+        }
+
+        @keyframes shine {
+            from {
+                left: -50%;
+            }
+
+            to {
+                left: 100%;
+            }
+        }
+
+        /* #loading-edge-shine {
+            position: absolute;
+            top: 0;
+            right: -8px;
+            width: 16px;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, transparent 70%);
+            pointer-events: none;
+            animation: shine-pulse 1s infinite ease-in-out;
+            mix-blend-mode: screen;
+        }
+
+        @keyframes shine-pulse {
+
+            0%,
+            100% {
+                opacity: 0.7;
+                transform: scaleY(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scaleY(1.3);
+            }
+        }
+
+        #final-flare {
+            position: absolute;
+            top: 50%;
+            right: -15px;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, transparent 80%);
+            border-radius: 50%;
+            transform: translateY(-50%) scale(0);
+            pointer-events: none;
+            opacity: 0;
+            mix-blend-mode: screen;
+            transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+            z-index: 2;
+        } */
+    </style>
+</head>
+
+<body>
+    <!-- Splash screen -->
+    <div id="splash-screen">
+        <video id="splash-video" autoplay muted playsinline>
+            <source src="penalty-shootout-splash.mp4" type="video/mp4" />
+            Tu navegador no soporta el video.
+        </video>
+    </div>
+
+    <!-- Loading video background -->
+    <div id="loading-video-container" style="display: none;">
+        <video id="loading-video" autoplay muted loop playsinline>
+            <source src="loading-screen.mp4" type="video/mp4" />
+            Tu navegador no soporta el video.
+        </video>
+    </div>
+
+    <!-- Unity container -->
+    <div id="unity-container">
+        <canvas id="unity-canvas"></canvas>
+        <div id="loading-bar-wrapper" style="display: none;">
+            <div id="loading-text">LOADING...</div>
+            <div id="loading-bar">
+                <div id="loading-fill">
+                    <div id="loading-glow"></div>
+                    <!-- <div id="loading-edge-shine"></div> -->
+                    <!-- <div id="final-flare"></div> -->
+                </div>
+            </div>
+        </div>
+        <!-- <div id="loading-bar">Loading...</div> -->
+    </div>
+
+    <script>
+        const buildUrl = "Build";
+        const loaderUrl = buildUrl + "/v0.7.loader.js";
+        const config = {
+            dataUrl: buildUrl + "/v0.7.data.unityweb",
+            frameworkUrl: buildUrl + "/v0.7.framework.js.unityweb",
+            codeUrl: buildUrl + "/v0.7.wasm.unityweb",
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "ZimpleGames",
+            productName: "penalty-shootout",
+            productVersion: "0.7",
+        };
+
+        const canvas = document.querySelector("#unity-canvas");
+        const loadingBar = document.querySelector("#loading-bar-wrapper");
+        let unityInstance = null;
+
+        // Splash screen logic
+        const splashVideo = document.getElementById("splash-video");
+        const splashScreen = document.getElementById("splash-screen");
+
+        // Loading Screen
+        const loadingVideoContainer = document.getElementById("loading-video-container");
+
+        // Cuando termine el video de splash, empezamos a cargar Unity
+        splashVideo.onended = () => {
+            splashScreen.style.display = "none";
+            // Mostramos Loading Screen y barra de progreso
+            loadingVideoContainer.style.display = "block";
+            loadingBar.style.display = "flex";
+            startUnity();
+        };
+
+        // Optional: allow skipping the splash screen on click or key press
+        // splashVideo.addEventListener("click", skipSplash);
+        // document.addEventListener("keydown", skipSplash);
+
+        function skipSplash() {
+            splashVideo.pause();
+            splashScreen.style.display = "none";
+            startUnity();
+        }
+
+        function startUnity() {
+            const script = document.createElement("script");
+            script.src = loaderUrl;
+            script.onload = () => {
+                createUnityInstance(canvas, config, (progress) => {
+                    const percent = Math.floor(progress * 100);
+                    document.getElementById("loading-fill").style.width = percent + "%";
+                }).then((instance) => {
+                    unityInstance = instance;
+                    // Ocultar video de fondo y barra de carga al finalizar
+                    loadingVideoContainer.style.display = "none";
+                    loadingBar.style.display = "none";
+                    sendUrlIdToUnity();
+                });
+            };
+            document.body.appendChild(script);
+        }
+
+        function sendUrlIdToUnity() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get("id");
+            console.log("ID RECEIVED => " + id);
+            if (id && unityInstance) {
+                // unityInstance.SendMessage("Manager-Api", "RecibirIdDesdeURL", id);
+            }
+        }
+    </script>
+</body>
+
+</html>
